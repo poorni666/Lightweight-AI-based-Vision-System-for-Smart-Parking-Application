@@ -1,9 +1,9 @@
-# 🚗 Thesis — Object Detection with TF OD API
+# S.P.A.C.E - Smart Parking Application for Circulation Efficiency with TF OD API
 > Parking lot occupancy detection (PKLot + custom dataset) using the TensorFlow Object Detection API.
 
 ---
 
-## 📋 Table of Contents
+## Table of Contents
 - [Project Overview](#project-overview)
 - [Repo Structure](#repo-structure)
 - [Quick Start (Docker)](#quick-start-docker)
