@@ -1,0 +1,17 @@
+# docker-compose.cpu.yml — CPU-only override
+# Usage: docker compose -f docker-compose.yml -f docker-compose.cpu.yml up --build
+#
+# Use this on machines without an NVIDIA GPU (e.g., laptops, CI)
+
+version: "3.9"
+
+services:
+  thesis:
+    image: tensorflow/tensorflow:2.11.0-jupyter   # CPU-only base image
+    build:
+      args:
+        BASE_IMAGE: tensorflow/tensorflow:2.11.0-jupyter
+    deploy: {}                                     # removes GPU reservation
+    environment:
+      - TF_CPP_MIN_LOG_LEVEL=2
+      - PYTHONPATH=/app/tensorflow_models:/app/tensorflow_models/research:/app/tensorflow_models/research/slim

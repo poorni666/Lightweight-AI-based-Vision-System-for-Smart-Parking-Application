@@ -1,0 +1,50 @@
+version: "3.9"
+
+services:
+
+  # ── Main development container ──────────────────────────────────────────────
+  thesis:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: thesis-od
+    ports:
+      - "8888:8888"       # Jupyter
+      - "6006:6006"       # TensorBoard
+    volumes:
+      - .:/app                          # live-sync entire project into container
+      - dataset_cache:/app/datasets     # persist datasets across rebuilds
+      - model_cache:/app/models         # persist trained model weights
+    environment:
+      - NVIDIA_VISIBLE_DEVICES=all
+      - TF_CPP_MIN_LOG_LEVEL=2          # suppress TF info spam
+      - PYTHONPATH=/app/tensorflow_models:/app/tensorflow_models/research:/app/tensorflow_models/research/slim
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]
+    ipc: host                           # needed for efficient GPU memory sharing
+    stdin_open: true
+    tty: true
+
+  # ── TensorBoard (runs alongside Jupyter) ────────────────────────────────────
+  tensorboard:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: thesis-tensorboard
+    command: tensorboard --logdir=/app/models --host=0.0.0.0 --port=6006
+    ports:
+      - "6006:6006"
+    volumes:
+      - model_cache:/app/models
+    depends_on:
+      - thesis
+
+# ── Named volumes (persist between `docker compose down` and `up`) ───────────
+volumes:
+  dataset_cache:
+  model_cache:
