@@ -9,7 +9,7 @@ tensorflow-io-gcs-filesystem==0.27.0
 
 # ── TF OD API required ────────────────────────────────────────────────────────
 # IMPORTANT: protobuf 3.x is required — 4.x breaks TF OD API proto parsing
-protobuf==3.20.3
+protobuf==3.19.6
 tf-slim==1.1.0
 lvis
 pycocotools                         # COCO evaluation metrics
