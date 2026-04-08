@@ -1,0 +1,22 @@
+{
+  "name": "Thesis OD API",
+  "dockerComposeFile": ["../docker-compose.yml"],
+  "service": "thesis",
+  "workspaceFolder": "/app",
+  "shutdownAction": "stopCompose",
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "ms-python.python",
+        "ms-toolsai.jupyter",
+        "ms-python.pylance"
+      ],
+      "settings": {
+        "python.defaultInterpreterPath": "/usr/bin/python3",
+        "jupyter.notebookFileRoot": "/app/notebooks"
+      }
+    }
+  },
+  "forwardPorts": [8888, 6006],
+  "postCreateCommand": "bash /tmp/install_tf_od_api.sh && bash /tmp/download_base_model.sh"
+}

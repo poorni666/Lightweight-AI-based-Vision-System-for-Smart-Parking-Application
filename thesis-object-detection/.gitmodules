@@ -1,5 +1,0 @@
-[submodule "tensorflow_models"]
-	path = tensorflow_models
-	url = https://github.com/tensorflow/models.git
-	# Pinned to a stable TF 2.11 compatible commit — DO NOT change without testing
-	# To update: cd tensorflow_models && git checkout <new-commit> && cd .. && git add tensorflow_models
