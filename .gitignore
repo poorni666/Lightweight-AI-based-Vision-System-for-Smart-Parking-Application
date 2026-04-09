@@ -2,25 +2,26 @@
 venv/
 .venv/
 
-# Datasets (too large for Git)
-datasets/**
-!datasets/README.md
-!datasets/pklot/.gitkeep
-!datasets/custom/.gitkeep
+# Datasets - keep private/local only
+datasets/
 
 # TFRecord / raw data files
 *.record
 *.tfrecord
 
-# Model weights and large exports
-models/checkpoints/**
-models/exported/**
+# Model checkpoints - ignore generated weights, keep folder visible
+models/checkpoints/*
 !models/checkpoints/.gitkeep
+
+# Exported SavedModel - ignore generated exports, keep folder visible
+models/exported/*
 !models/exported/.gitkeep
 
-# TFLite — small enough to keep
-!models/tflite/*.tflite
+# TFLite - allow small models to be committed, keep folder visible
+!models/tflite/
 !models/tflite/.gitkeep
+# Optional: ignore only large variants if needed later
+# models/tflite/*.tmp
 
 # Protobuf / checkpoint files
 *.pb
@@ -31,7 +32,8 @@ models/exported/**
 *.data-00000-of-00001
 *.saved_model
 
-# Results — only keep metrics
-results/**
+# Results - ignore everything except metrics JSONs and README
+results/*
+!results/.gitkeep
 !results/README.md
 !results/metrics_*.json
