@@ -9,3 +9,23 @@ datasets/
 *.index
 *.data-00000-of-00001
 results/
+
+# Datasets (too large for Git)
+datasets/pklot/*
+datasets/custom/*
+!datasets/pklot/.gitkeep
+!datasets/custom/.gitkeep
+!datasets/README.md
+
+# Large model outputs
+results/*/exported_model/
+results/*/checkpoint/
+*.ckpt
+*.ckpt.*
+*.pb
+*.saved_model
+
+# Keep small meaningful outputs
+!results/*/metrics.json
+!results/*/tflite/*.tflite
+!results/README.md
