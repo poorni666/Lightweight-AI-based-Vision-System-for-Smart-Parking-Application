@@ -8,11 +8,11 @@
 ## Table of Contents
 - [Project Overview](#project-overview)
 - [Repo Structure](#repo-structure)
-- [Quick Start (Docker)](#quick-start-docker)
-- [Manual Setup (no Docker)](#manual-setup-no-docker)
+- [Setup — Local venv (recommended)](#setup--local-venv-recommended)
+- [Setup — Docker (for full reproducibility)](#setup--docker)
 - [Datasets](#datasets)
-- [Training](#training)
-- [Evaluation & Export](#evaluation--export)
+- [Experiments](#experiments)
+- [Running Notebooks](#running-notebooks)
 - [Results](#results)
 
 ---
@@ -25,104 +25,135 @@ This thesis investigates object detection for parking lot occupancy classificati
 
 Models are trained using the **TensorFlow Object Detection API** and exported in multiple formats (SavedModel, TFLite, ONNX) for deployment analysis.
 
+
+## Project Overview
+
+This thesis investigates parking lot occupancy detection using two datasets and two training strategies:
+
+- **PKLot** — public benchmark dataset of parking lot images
+- **TelitlLot** — custom dataset collected and annotated manually
+- **Labels:** `space-empty`, `space-occupied`
+- **Model:** SSD MobileNet V2 FPN Lite 320x320 (pretrained on COCO17, fine-tuned)
+- **Strategies:** Fine-tuning vs Frozen Backbone
+- **Exports:** SavedModel, TFLite (float32/float16/int8).
 ---
 
 ## Repo Structure
 
 ```
-thesis-object-detection/
-├── datasets/               # Data (raw images gitignored — see Datasets section)
-│   ├── pklot/
-│   └── custom/
-├── notebooks/              # Numbered Jupyter notebooks (run in order)
+SPACE/
+├── configs/
+│   ├── pklot/pipeline.config        ← TF OD API pipeline for PKLot
+│   └── custom/pipeline.config       ← TF OD API pipeline for custom dataset
+├── datasets/
+│   ├── pklot/                        ← gitignored (see Datasets section)
+│   │   ├── train/  (train.tfrecord + trainlabel_map.pbtxt)
+│   │   ├── valid/  (valid.tfrecord + validlabel_map.pbtxt)
+│   │   └── test/   (test.tfrecord  + testlabel_map.pbtxt)
+│   └── custom/                       ← same structure as pklot
+├── models/                           ← gitignored (checkpoints + exports)
+├── notebooks/
+│   ├── 03_training_pklot.ipynb       ← E1 (fine-tune) + E3 (frozen backbone)
+│   ├── 04_training_custom.ipynb      ← E5 + E6
+│   ├── 05_evaluation.ipynb           ← E1, E3, E5, E6
+│   ├── 06_cross_dataset_eval.ipynb   ← E2, E4 (cross-domain)
+│   ├── 07_export.ipynb               ← SavedModel + TFLite + ONNX
+│   └── 08_inference_demo.ipynb       ← visual demo + model comparison
+├── results/                          ← metrics JSON + plots
 ├── scripts/
-│   ├── dataset_prep/       # TFRecord generation, label maps, splits
-│   ├── setup/              # Environment setup scripts
-│   └── export/             # Model export scripts
-├── configs/                # TF OD API pipeline.config files
-├── models/                 # Trained model outputs (gitignored — see below)
-├── results/                # Metrics and visualization outputs
-├── tensorflow_models/      # Git submodule — tensorflow/models repo
-├── Dockerfile
+│   ├── experiment_configs.py         ← all paths + experiment definitions
+│   ├── patch_config.py               ← auto-patches pipeline config per experiment
+│   └── setup/
+│       └── download_base_model.sh    ← downloads COCO17 pretrained checkpoint
+├── tensorflow_models/                ← git submodule (tensorflow/models)
+├── setup_local.py                    ← automated local setup script
+├── Dockerfile                        ← for Docker-based reproducibility
 ├── docker-compose.yml
-└── requirements.txt
+└── requirements.txt                  ← pinned: tf==2.11.0, protobuf==3.19.6
 ```
 
 ---
 
-## Quick Start (Docker)
+## Setup — Local venv (recommended)
 
-### Prerequisites
-- [Docker Desktop](https://www.docker.com/products/docker-desktop/) (with GPU support if using NVIDIA)
-- [NVIDIA Container Toolkit](https://docs.nvidia.com/datacenter/cloud-native/container-toolkit/install-guide.html) (GPU only)
-- Git
+> Requires **Python 3.7** and **Windows**. One script does everything.
 
-### 1. Clone the repo (with submodule)
-```bash
-git clone --recurse-submodules https://github.com/YOUR_USERNAME/thesis-object-detection.git
-cd thesis-object-detection
+### 1. Clone with submodule
+```powershell
+git clone --recurse-submodules https://github.com/poorni666/Automated-Vision-system-for-Smart-parking-efficiency.git
+cd SPACE
 
 # If you forgot --recurse-submodules:
 git submodule update --init --recursive
 ```
 
-### 2. Pin the submodule to a stable commit
-```bash
-cd tensorflow_models
-git checkout v2.11.0   # stable tag for TF 2.11
-cd ..
-git add tensorflow_models
-git commit -m "pin tensorflow/models to v2.11.0"
+### 2. Create virtual environment
+```powershell
+py -3.7 -m venv .venv
+.venv\Scripts\Activate.ps1
 ```
 
-### 3. Build and start
-```bash
-# GPU (recommended)
-docker compose up --build
-
-# CPU only — edit docker-compose.yml first:
-# comment out the `deploy: resources:` section, then:
-docker compose up --build
+### 3. Run automated setup (one command does everything)
+```powershell
+python setup_local.py
 ```
 
-### 4. Open Jupyter
-Visit → **http://localhost:8888**
+This automatically:
+- Installs all pinned requirements
+- Downloads `protoc.exe` v3.19.6
+- Compiles TF OD API protobuf definitions
+- Installs the `object_detection` package
+- Permanently adds `PYTHONPATH` to your venv
 
-TensorBoard → **http://localhost:6006**
+### 4. Verify
+```powershell
+python -c "import tensorflow as tf; print(tf.__version__)"
+# 2.11.0
+
+python -c "from object_detection.utils import label_map_util; print('OD API OK')"
+# OD API OK
+```
+
+### Daily workflow
+```powershell
+cd SPACE
+.venv\Scripts\Activate.ps1
+jupyter notebook notebooks/
+```
 
 ---
 
-## Manual Setup — Docker (recommended for others)
-docker-compose up
+## Setup — Docker
 
-## Setup — Local venv (faster iteration)
-python -m venv venv
-venv\Scripts\activate        # Windows
-pip install -r requirements-dev.txt
+> Use this for full environment reproducibility on any OS.
 
-> ⚠️ Requires Python 3.7 exactly. Use pyenv or conda to manage this.
+### Prerequisites
+- [Docker Desktop](https://www.docker.com/products/docker-desktop/)
+- [NVIDIA Container Toolkit](https://docs.nvidia.com/datacenter/cloud-native/container-toolkit/install-guide.html) (GPU only)
+- Git
 
+
+### 1. Clone with submodule
 ```bash
-# Create environment
-conda create -n thesis python=3.7 -y
-conda activate thesis
-
-# Install dependencies
-pip install -r requirements.txt
-
-# Install TF OD API from submodule
+git clone --recurse-submodules https://github.com/poorni666/Automated-Vision-system-for-Smart-parking-efficiency.git
+cd SPACE
 git submodule update --init --recursive
-bash scripts/setup/install_tf_od_api.sh
-
-# Set PYTHONPATH
-export PYTHONPATH=$(pwd)/tensorflow_models:$(pwd)/tensorflow_models/research:$(pwd)/tensorflow_models/research/slim:$PYTHONPATH
-
-# Start Jupyter
-jupyter notebook --notebook-dir=notebooks
 ```
 
----
+### 2. Build and start
+```bash
+# GPU
+docker compose up --build
 
+# CPU only
+docker compose -f docker-compose.yml -f docker-compose.cpu.yml up --build
+```
+
+### 3. Open Jupyter
+- Jupyter → **http://localhost:8888**
+- TensorBoard → **http://localhost:6006**
+
+---
 ## Datasets
 
 ### PKLot
@@ -142,42 +173,43 @@ After placing images in the correct folders:
 python scripts/dataset_prep/convert_to_tfrecord.py --dataset pklot
 python scripts/dataset_prep/convert_to_tfrecord.py --dataset custom
 ```
+---
+
+## Experiments
+
+| Exp | Model | Train | Strategy | Test | Type |
+|-----|-------|-------|----------|------|------|
+| E1 | M1 | PKLot | Fine-Tuning | PKLot | In-Domain |
+| E2 | M1 | PKLot | Fine-Tuning | TelitlLot | Cross-Domain |
+| E3 | M2 | PKLot | Frozen Backbone | PKLot | In-Domain |
+| E4 | M2 | PKLot | Frozen Backbone | TelitlLot | Cross-Domain |
+| E5 | M3 | TelitlLot | Fine-Tuning | TelitlLot | Target-Domain |
+| E6 | M4 | TelitlLot | Frozen Backbone | TelitlLot | Target-Domain |
+
+Experiments are configured in `scripts/experiment_configs.py` — no manual path editing needed.
 
 ---
 
-## Training
+## Running Notebooks
 
-```bash
-# From inside Docker (or with PYTHONPATH set):
-python tensorflow_models/research/object_detection/model_main_tf2.py \
-    --pipeline_config_path=configs/pklot/pipeline.config \
-    --model_dir=models/pklot/checkpoint \
-    --alsologtostderr
+```powershell
+# Activate venv first
+.venv\Scripts\Activate.ps1
+
+# Launch Jupyter
+jupyter notebook notebooks/
 ```
 
-Monitor training: open TensorBoard at http://localhost:6006
+Run in order:
 
----
-
-## Evaluation & Export
-
-```bash
-# Evaluate
-python tensorflow_models/research/object_detection/model_main_tf2.py \
-    --pipeline_config_path=configs/pklot/pipeline.config \
-    --model_dir=models/pklot/checkpoint \
-    --checkpoint_dir=models/pklot/checkpoint \
-    --alsologtostderr
-
-# Export SavedModel
-python scripts/export/export_savedmodel.py --dataset pklot
-
-# Export TFLite
-python scripts/export/export_tflite.py --dataset pklot
-
-# Export ONNX
-python scripts/export/export_onnx.py --dataset pklot
-```
+| Notebook | What it does |
+|----------|-------------|
+| `03_training_pklot.ipynb` | Trains E1 + E3 |
+| `04_training_custom.ipynb` | Trains E5 + E6 |
+| `05_evaluation.ipynb` | Evaluates E1, E3, E5, E6 |
+| `06_cross_dataset_eval.ipynb` | Evaluates E2, E4 (cross-domain) |
+| `07_export.ipynb` | Exports SavedModel, TFLite, ONNX |
+| `08_inference_demo.ipynb` | Visual demo + speed benchmark |
 
 ---
 
