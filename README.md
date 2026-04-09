@@ -212,6 +212,36 @@ Run in order:
 | `08_inference_demo.ipynb` | Visual demo + speed benchmark |
 
 ---
+## Model Architecture
+
+The model used in this project is **SSD MobileNet V2 FPN Lite 320×320**, a lightweight single-stage object detector pretrained on COCO 2017 and fine-tuned for parking space occupancy detection.
+
+It was selected because it strikes the right balance between speed and accuracy for real-time parking monitoring — small enough to run on edge hardware, accurate enough for reliable occupancy classification.
+
+### Components
+
+**Backbone — MobileNet V2**
+Extracts visual features from the input image using depthwise separable convolutions, which are significantly cheaper to compute than standard convolutions. This is what makes the model lightweight. The backbone is pretrained on COCO 2017, meaning it already understands general visual concepts (edges, shapes, textures) before we ever show it a parking lot.
+
+**Neck — FPN Lite (Feature Pyramid Network)**
+Parking lot images are challenging because spaces appear at very different scales ,a space close to the camera looks large, while one far away looks tiny. FPN Lite solves this by combining feature maps from multiple backbone levels, creating a multi-scale representation that handles both large and small spaces in the same image.
+
+**Head — Convolutional Predictor**
+Takes the fused feature maps and outputs bounding boxes + class scores for each anchor. The same weights are shared across all scales, which keeps the model compact and helps it generalise.
+
+**Post-processing — NMS**
+Filters overlapping detections, keeping only the most confident prediction per parking space.
+
+### Training Strategies
+
+Two strategies are compared across the 6 experiments:
+
+**Fine-Tuning**
+All weights — backbone, neck, and head — are updated during training. The backbone adapts from COCO features to parking-specific features. This generally achieves higher accuracy.
+
+**Frozen Backbone**
+Only the neck and head are trained. The backbone stays fixed at its COCO pretrained weights. This tests how well general visual features transfer to the parking domain without any adaptation. Training is faster and the model relies entirely on transfer learning for feature extraction.
+
 
 ## Results
 
