@@ -1,32 +1,24 @@
-# ─────────────────────────────────────────────────────────────────────────────
-# Pinned requirements for TF Object Detection API (TF 2.11, Python 3.8)
-# DO NOT blindly upgrade — TF OD API is sensitive to protobuf & tf versions.
-# ─────────────────────────────────────────────────────────────────────────────
+# requirements.txt — TF 2.11 compatible (Python 3.7)
 
 # ── Core ML ───────────────────────────────────────────────────────────────────
-tensorflow==2.11.0                  # pinned — OD API tested on this
+tensorflow==2.11.0
 tensorflow-io-gcs-filesystem==0.27.0
 
 # ── TF OD API required ────────────────────────────────────────────────────────
-# IMPORTANT: protobuf 3.x is required — 4.x breaks TF OD API proto parsing
 protobuf==3.19.6
 tf-slim==1.1.0
 lvis
-pycocotools                         # COCO evaluation metrics
+pycocotools
 contextlib2
 Cython
 
-# ── OD API official package (installed from submodule via setup.sh) ───────────
-# tf-models-official is installed by install_tf_od_api.sh from the submodule
-# Do NOT add it here — version must match the submodule commit
-
 # ── Data & visualization ──────────────────────────────────────────────────────
-numpy==1.23.5                       # pinned — TF 2.11 compatible
-pandas==1.5.3
-matplotlib==3.6.3
+numpy==1.21.6
+pandas==1.3.5
+matplotlib==3.5.3
 opencv-python==4.7.0.72
 Pillow==9.4.0
-scikit-learn==1.2.1
+scikit-learn==1.0.2
 seaborn==0.12.2
 
 # ── Notebook & tooling ────────────────────────────────────────────────────────
@@ -36,14 +28,14 @@ ipywidgets==8.0.4
 tqdm==4.65.0
 
 # ── Export utilities ──────────────────────────────────────────────────────────
-onnx==1.13.1
-onnxruntime==1.14.1
+onnx==1.12.0
+onnxruntime==1.13.1
 tf2onnx==1.13.0
 
 # ── Dataset utilities ─────────────────────────────────────────────────────────
-xmltodict==0.13.0                   # for parsing Pascal VOC XML annotations
-kaggle                              # optional: to pull PKLot via Kaggle API
-gdown                               # Google Drive dataset downloads
+xmltodict==0.13.0
+kaggle
+gdown
 
 # ── Misc ──────────────────────────────────────────────────────────────────────
 PyYAML==6.0
