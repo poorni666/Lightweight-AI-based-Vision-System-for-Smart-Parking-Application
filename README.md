@@ -1,275 +1,267 @@
-# S.P.A.C.E - Smart Parking Application for Circulation Efficiency with TF OD API
-> Parking lot occupancy detection (PKLot + custom dataset) using the TensorFlow Object Detection API.
+# SPACE : a Lightweight AI based Vision System for Smart Parking Effeciency 
+
+Smart Parking Application for Circulation Efficiency (SPACE) is a parking lot automatic occupancy detection using the TensorFlow Object Detection API, targeting deployment on the **Alif Ensemble E7** edge device.
+
+Datasets: [PKLot](https://public.roboflow.com/object-detection/pklot) (public, 12k images) and custom dataset, 500 images collected at Telit Cinterion, Trieste.
+
 <p align="center">
-  <img src="assests/parkingreadme.png" alt="Smart parking application illustration" width="900">
+  <img src="assets/parkingreadme.png" alt="Parking lot occupancy detection" width="900">
 </p>
----
-
-## Table of Contents
-- [Project Overview](#project-overview)
-- [Repo Structure](#repo-structure)
-- [Setup — Local venv (recommended)](#setup--local-venv-recommended)
-- [Setup — Docker (for full reproducibility)](#setup--docker)
-- [Datasets](#datasets)
-- [Experiments](#experiments)
-- [Running Notebooks](#running-notebooks)
-- [Results](#results)
 
 ---
 
-## Project Overview
+## Setup
 
-This thesis investigates object detection for parking lot occupancy classification using:
-- **PKLot** — a public benchmark dataset of parking lot images
-- **Custom dataset** — collected and annotated manually
+Clone with submodule:
 
-Models are trained using the **TensorFlow Object Detection API** and exported in multiple formats (SavedModel, TFLite, ONNX) for deployment analysis.
-
-
-## Project Overview
-
-This thesis investigates parking lot occupancy detection using two datasets and two training strategies:
-
-- **PKLot** — public benchmark dataset of parking lot images
-- **TelitlLot** — custom dataset collected and annotated manually
-- **Labels:** `space-empty`, `space-occupied`
-- **Model:** SSD MobileNet V2 FPN Lite 320x320 (pretrained on COCO17, fine-tuned)
-- **Strategies:** Fine-tuning vs Frozen Backbone
-- **Exports:** SavedModel, TFLite (float32/float16/int8).
----
-
-## Repo Structure
-
-```
-SPACE/
-├── configs/
-│   ├── pklot/pipeline.config        ← TF OD API pipeline for PKLot
-│   └── custom/pipeline.config       ← TF OD API pipeline for custom dataset
-├── datasets/
-│   ├── pklot/                        ← gitignored (see Datasets section)
-│   │   ├── train/  (train.tfrecord + trainlabel_map.pbtxt)
-│   │   ├── valid/  (valid.tfrecord + validlabel_map.pbtxt)
-│   │   └── test/   (test.tfrecord  + testlabel_map.pbtxt)
-│   └── custom/                       ← same structure as pklot
-├── models/                           ← gitignored (checkpoints + exports)
-├── notebooks/
-│   ├── 03_training_pklot.ipynb       ← E1 (fine-tune) + E3 (frozen backbone)
-│   ├── 04_training_custom.ipynb      ← E5 + E6
-│   ├── 05_evaluation.ipynb           ← E1, E3, E5, E6
-│   ├── 06_cross_dataset_eval.ipynb   ← E2, E4 (cross-domain)
-│   ├── 07_export.ipynb               ← SavedModel + TFLite + ONNX
-│   └── 08_inference_demo.ipynb       ← visual demo + model comparison
-├── results/                          ← metrics JSON + plots
-├── scripts/
-│   ├── experiment_configs.py         ← all paths + experiment definitions
-│   ├── patch_config.py               ← auto-patches pipeline config per experiment
-│   └── setup/
-│       └── download_base_model.sh    ← downloads COCO17 pretrained checkpoint
-├── tensorflow_models/                ← git submodule (tensorflow/models)
-├── setup_local.py                    ← automated local setup script
-├── Dockerfile                        ← for Docker-based reproducibility
-├── docker-compose.yml
-└── requirements.txt                  ← pinned: tf==2.11.0, protobuf==3.19.6
-```
-
----
-
-## Setup — Local venv (recommended)
-
-> Requires **Python 3.7** and **Windows**. One script does everything.
-
-### 1. Clone with submodule
 ```powershell
 git clone --recurse-submodules https://github.com/poorni666/Automated-Vision-system-for-Smart-parking-efficiency.git
 cd SPACE
 
-# If you forgot --recurse-submodules:
+# if you forgot --recurse-submodules:
 git submodule update --init --recursive
 ```
 
-### 2. Create virtual environment
+Create a virtual environment and install dependencies (Python 3.7, Windows):
+
 ```powershell
 py -3.7 -m venv .venv
 .venv\Scripts\Activate.ps1
-```
-
-### 3. Run automated setup (one command does everything)
-```powershell
 python setup_local.py
 ```
 
-This automatically:
-- Installs all pinned requirements
-- Downloads `protoc.exe` v3.19.6
-- Compiles TF OD API protobuf definitions
-- Installs the `object_detection` package
-- Permanently adds `PYTHONPATH` to your venv
+`setup_local.py` handles everything: installs pinned requirements, downloads `protoc.exe` v3.19.6, compiles TF OD API protobufs, installs the `object_detection` package, and sets `PYTHONPATH`.
 
-### 4. Verify
+Verify:
+
 ```powershell
-python -c "import tensorflow as tf; print(tf.__version__)"
-# 2.11.0
-
+python -c "import tensorflow as tf; print(tf.__version__)"   # 2.11.0
 python -c "from object_detection.utils import label_map_util; print('OD API OK')"
-# OD API OK
 ```
 
-### Daily workflow
+> **Docker alternative:** `docker compose up --build` (GPU) or `docker compose -f docker-compose.yml -f docker-compose.cpu.yml up --build` (CPU). Jupyter at `localhost:8888`, TensorBoard at `localhost:6006`.
+
+### Common setup issues
+
+**`AlreadyExistsError: File system for az already registered`** — `tensorflow-io` registers the Azure filesystem plugin twice on Windows with TF 2.11. Fix:
+
 ```powershell
-cd SPACE
-.venv\Scripts\Activate.ps1
-jupyter notebook notebooks/
+pip uninstall tensorflow-io tensorflow-io-gcs-filesystem -y
+```
+
+If it reappears after reinstalling, pin it: `pip install tensorflow-io==0.23.1`.
+
+**`ModuleNotFoundError: No module named 'object_detection'`** — Re-run `python setup_local.py`, or add to your venv's `Activate.ps1`:
+
+```powershell
+$env:PYTHONPATH = "d:\SPACE\tensorflow_models\research;d:\SPACE\tensorflow_models\research\slim"
 ```
 
 ---
 
-## Setup — Docker
+## Data
 
-> Use this for full environment reproducibility on any OS.
+> **Important:** Datasets are not included. Download and place them as described below, then generate TFRecords.
 
-### Prerequisites
-- [Docker Desktop](https://www.docker.com/products/docker-desktop/)
-- [NVIDIA Container Toolkit](https://docs.nvidia.com/datacenter/cloud-native/container-toolkit/install-guide.html) (GPU only)
-- Git
+**PKLot** — download the object detection version (TFRecord format, 320×320) from Roboflow:
 
-
-### 1. Clone with submodule
-```bash
-git clone --recurse-submodules https://github.com/poorni666/Automated-Vision-system-for-Smart-parking-efficiency.git
-cd SPACE
-git submodule update --init --recursive
+```
+datasets/pklot/
+  train/  valid/  test/  test_images/  label_map.pbtxt
 ```
 
-### 2. Build and start
-```bash
-# GPU
-docker compose up --build
+**TelitLot** — custom dataset collected at the Telit Cinterion facility (Trieste). Annotations in Pascal VOC XML format are in `datasets/custom/annotations/`. Raw images not included — contact the author.
 
-# CPU only
-docker compose -f docker-compose.yml -f docker-compose.cpu.yml up --build
+```
+datasets/custom/
+  train/  valid/  test/  label_map.pbtxt
 ```
 
-### 3. Open Jupyter
-- Jupyter → **http://localhost:8888**
-- TensorBoard → **http://localhost:6006**
+Generate TFRecords from annotations:
 
----
-## Datasets
-
-### PKLot
-PKLot is not included in this repo due to size. Download it from:
-- **Kaggle**: https://www.kaggle.com/datasets/ammarnassanalhajali/pklot-dataset
-- **Original paper site**: https://web.inf.ufpr.br/vri/databases/parking-lot-database/
-
-Place images at: `datasets/pklot/raw/`
-
-### Custom Dataset
-The custom dataset annotations are in `datasets/custom/annotations/` (Pascal VOC XML format).
-Raw images are not included — contact the author or see the thesis for acquisition details.
-
-### Generate TFRecords
-After placing images in the correct folders:
-```bash
+```powershell
 python scripts/dataset_prep/convert_to_tfrecord.py --dataset pklot
 python scripts/dataset_prep/convert_to_tfrecord.py --dataset custom
 ```
----
 
-## Experiments
-
-| Exp | Model | Train | Strategy | Test | Type |
-|-----|-------|-------|----------|------|------|
-| E1 | M1 | PKLot | Fine-Tuning | PKLot | In-Domain |
-| E2 | M1 | PKLot | Fine-Tuning | TelitlLot | Cross-Domain |
-| E3 | M2 | PKLot | Frozen Backbone | PKLot | In-Domain |
-| E4 | M2 | PKLot | Frozen Backbone | TelitlLot | Cross-Domain |
-| E5 | M3 | TelitlLot | Fine-Tuning | TelitlLot | Target-Domain |
-| E6 | M4 | TelitlLot | Frozen Backbone | TelitlLot | Target-Domain |
-
-Experiments are configured in `scripts/experiment_configs.py` — no manual path editing needed.
+All paths and split configs live in `scripts/experiment_configs.py`.
 
 ---
 
-## Running Notebooks
+## Pipeline Architecture
 
-```powershell
-# Activate venv first
-.venv\Scripts\Activate.ps1
-
-# Launch Jupyter
-jupyter notebook notebooks/
+```
+Images (320×320) ──► MobileNetV2 Backbone ──► FPN Neck ──► SSD Head ──► NMS ──► Predictions
+                      (feature extraction)    (multi-scale)  (anchors)           (boxes + labels)
+                            │
+                     Pretrained on COCO17
+                            │
+                    ┌───────┴────────┐
+               Fine-Tuning      Frozen Backbone
+              (all layers)     (head only, E3/E6)
 ```
 
-Run in order:
+```
+PKLot (12k imgs) ──► Train ──► Evaluate on PKLot    (E1, E3 — in-domain)
+                 └──────────► Evaluate on TelitLot   (E2, E4 — cross-domain)
 
-| Notebook | What it does |
-|----------|-------------|
-| `03_training_pklot.ipynb` | Trains E1 + E3 |
-| `04_training_custom.ipynb` | Trains E5 + E6 |
-| `05_evaluation.ipynb` | Evaluates E1, E3, E5, E6 |
-| `06_cross_dataset_eval.ipynb` | Evaluates E2, E4 (cross-domain) |
-| `07_export.ipynb` | Exports SavedModel, TFLite, ONNX |
-| `08_inference_demo.ipynb` | Visual demo + speed benchmark |
+TelitLot (500 imgs) ──► Train ──► Evaluate on TelitLot  (E5, E6 — target-domain)
 
----
-## Model Architecture
-
-The model used in this project is **SSD MobileNet V2 FPN Lite 320×320**, a lightweight single-stage object detector pretrained on COCO 2017 and fine-tuned for parking space occupancy detection.
-
-It was selected because it strikes the right balance between speed and accuracy for real-time parking monitoring — small enough to run on edge hardware, accurate enough for reliable occupancy classification.
+Best model (E6) ──► Export SavedModel ──► TFLite INT8 ──► Alif Ensemble E7
+```
 
 ### Components
 
-**Backbone — MobileNet V2**
-Extracts visual features from the input image using depthwise separable convolutions, which are significantly cheaper to compute than standard convolutions. This is what makes the model lightweight. The backbone is pretrained on COCO 2017, meaning it already understands general visual concepts (edges, shapes, textures) before we ever show it a parking lot.
+- **Backbone — MobileNetV2**: lightweight feature extractor using depthwise separable convolutions and inverted residual blocks. Pretrained on COCO 2017.
+- **Neck — FPN Lite**: Feature Pyramid Network combines multi-scale feature maps so the model handles both nearby (larger) and distant (smaller) parking spaces in the same image.
+- **Head — SSD**: single-pass prediction of bounding boxes and class scores over predefined anchors. No region proposals — fast enough for edge inference.
+- **Post-processing — NMS**: removes duplicate overlapping detections per space.
+- **Transfer learning strategies**: fine-tuning updates all weights; frozen backbone freezes `FeatureExtractor` and trains only the detection head — fewer trainable parameters, faster convergence, less data needed.
 
-**Neck — FPN Lite (Feature Pyramid Network)**
-Parking lot images are challenging because spaces appear at very different scales ,a space close to the camera looks large, while one far away looks tiny. FPN Lite solves this by combining feature maps from multiple backbone levels, creating a multi-scale representation that handles both large and small spaces in the same image.
+### Code Structure
 
-**Head — Convolutional Predictor**
-Takes the fused feature maps and outputs bounding boxes + class scores for each anchor. The same weights are shared across all scales, which keeps the model compact and helps it generalise.
+```
+configs/
+  base_pipeline.config         # shared base — all experiments extend this
+  experiments/
+    pipeline_E1.config         # fine-tuning on PKLot
+    pipeline_E3.config         # frozen backbone on PKLot
+  config.py                    # path constants + config helpers
 
-**Post-processing — NMS**
-Filters overlapping detections, keeping only the most confident prediction per parking space.
+scripts/
+  experiment_configs.py        # all experiment paths + hyperparameters (edit here)
+  patch_config.py              # patches pipeline.config fields at runtime
+  training_loop.py             # training orchestration
+  evaluate_protocol.py         # PR curve, F1 threshold sweep, confusion matrices
+  setup_local.py               # automated setup
 
-### Training Strategies
-
-Two strategies are compared across the 6 experiments:
-
-**Fine-Tuning**
-All weights — backbone, neck, and head — are updated during training. The backbone adapts from COCO features to parking-specific features. This generally achieves higher accuracy.
-
-**Frozen Backbone**
-Only the neck and head are trained. The backbone stays fixed at its COCO pretrained weights. This tests how well general visual features transfer to the parking domain without any adaptation. Training is faster and the model relies entirely on transfer learning for feature extraction.
-
-
-## Results
-
-| Dataset | Model | mAP@0.5 | Inference (ms) |
-|---------|-------|---------|----------------|
-| PKLot   | SSD MobileNetV2 | — | — |
-| Custom  | SSD MobileNetV2 | — | — |
-
-> Results will be populated after training. See `results/metrics/` for full evaluation output.
+notebooks/
+  03_training_pklot.ipynb      # E1 + E3
+  04_training_custom.ipynb     # E5 + E6
+  05_training_general.ipynb    # general-purpose configurable training (edit via experiment_configs.py)
+  05_evaluation.ipynb          # in-domain evaluation
+  06_cross_dataset_eval.ipynb  # cross-domain evaluation
+  08_inference_demo.ipynb      # visual demo + speed benchmark
+```
 
 ---
 
-## Notebooks
+## Usage
 
-| # | Notebook | Description |
-|---|----------|-------------|
-| 01 | `dataset_exploration.ipynb` | EDA on PKLot and custom dataset |
-| 02 | `data_preparation.ipynb` | Annotation parsing, TFRecord generation |
-| 03 | `training_pklot.ipynb` | Training walkthrough — PKLot |
-| 04 | `training_custom.ipynb` | Training walkthrough — Custom dataset |
-| 05 | `evaluation.ipynb` | mAP, precision/recall, confusion matrix |
-| 06 | `inference_demo.ipynb` | Live inference with visualized detections |
+### Configure an experiment
+
+All paths and hyperparameters are defined in `scripts/experiment_configs.py`. To change batch size, number of steps, learning rate, or toggle backbone freezing — edit it there. `patch_config.py` writes those changes into the pipeline config at runtime, so you never need to edit a `.config` file directly.
+
+To switch between fine-tuning and frozen backbone in the pipeline config:
+
+```protobuf
+train_config {
+  fine_tune_checkpoint: "models/pretrained/ssd_mobilenet_v2_fpnlite_320x320_coco17_tpu-8/checkpoint/ckpt-0"
+  fine_tune_checkpoint_type: "detection"
+
+  # frozen backbone: add this line. Fine-tuning: remove it.
+  freeze_variables: "FeatureExtractor"
+}
+```
+
+### Run training
+
+```powershell
+# via notebook:
+jupyter notebook notebooks/05_training_general.ipynb
+
+# or directly:
+python tensorflow_models/research/object_detection/model_main_tf2.py \
+  --pipeline_config_path=configs/experiments/pipeline_E1.config \
+  --model_dir=models/checkpoints/M1_pklot_fine_tune \
+  --num_train_steps=50000 \
+  --checkpoint_every_n=5000 \
+  --alsologtostderr
+```
+
+Monitor with TensorBoard:
+
+```powershell
+tensorboard --logdir=models/checkpoints/
+```
+
+### Evaluate
+
+```powershell
+python scripts/evaluate_protocol.py \
+  --pipeline_config=configs/experiments/pipeline_E1.config \
+  --checkpoint_dir=models/checkpoints/M1_pklot_fine_tune \
+  --eval_record=datasets/pklot/test/test.tfrecord \
+  --label_map=datasets/pklot/label_map.pbtxt
+```
+
+Outputs: mAP@0.5, PR curve, optimal confidence threshold (max F1), existence + class confusion matrices.
+
+### Export to TFLite
+
+See `models/tflite/loadmodel.ipynb` for the INT8 quantization workflow using representative dataset calibration, and `notebooks/08_inference_demo.ipynb` for inference benchmarking across model formats.
+
+---
+
+## Experiments & Results
+
+Six experiments across three evaluation scenarios. All use SSD MobileNetV2 FPNLite 320×320 initialized from COCO17 pretrained weights, Momentum optimizer, cosine decay LR schedule, and 50k training steps.
+
+| Exp | Model | Train | Strategy | Test | mAP@0.5 | Threshold | F1 |
+|-----|-------|-------|----------|------|:-------:|:---------:|:--:|
+| E1 | M1 | PKLot | Fine-Tuning | PKLot | **0.92** | 0.27 | 0.84 |
+| E2 | M1 | PKLot | Fine-Tuning | TelitLot | 0.00 | 0.21 | 0.14 |
+| E3 | M2 | PKLot | Frozen Backbone | PKLot | **0.71** | 0.29 | 0.65 |
+| E4 | M2 | PKLot | Frozen Backbone | TelitLot | 0.02 | 0.29 | 0.12 |
+| E5 | M3 | TelitLot | Fine-Tuning | TelitLot | 0.00 | — | — |
+| E6 | M4 | TelitLot | Frozen Backbone | TelitLot | **0.72** | 0.48 | 0.79 |
+
+**E1/E3** — in-domain baselines on PKLot. Fine-tuning reaches mAP 0.92; frozen backbone drops to 0.71 because the fixed backbone misses some localisation, though classification of detected spaces stays accurate.
+
+**E2/E4** — zero-shot cross-domain transfer to TelitLot. Both models fail (mAP ≈ 0). Domain shift from viewpoint, lighting, and scene geometry is too large for zero-shot transfer.
+
+**E5/E6** — training directly on 500 TelitLot images. Fine-tuning (E5) fails — all-layer updates on very limited data disrupt pretrained features without enough target data to guide them. Frozen backbone (E6) achieves mAP 0.72, converging at ~10k steps. **E6 is the recommended deployment configuration.**
+
+### Model compression
+
+| Format | Precision | Size | Compression |
+|--------|-----------|------|:-----------:|
+| SavedModel | FP32 | 15.8 MB | 1× |
+| TFLite INT8 | INT8 | **3.31 MB** | **4.8×** |
+
+The quantized model fits within the Alif Ensemble E7's 13.5 MB SRAM constraint. Parameter count (3.5M) is unchanged.
+
+---
+
+## Model Choices
+
+**SSD MobileNetV2 FPNLite 320×320** — chosen for three reasons: (1) the Alif E7's Ethos-U55 NPU supports TFLite Micro with INT8 quantization, which rules out PyTorch-based models and heavyweight architectures like DETR; (2) the 13.5 MB SRAM budget required a model under ~4 MB after quantization; (3) SSD's single-pass inference is fast enough for real-time edge deployment where two-stage detectors (Faster R-CNN) are too slow.
+
+**Frozen backbone** — preserving COCO-pretrained features prevents catastrophic forgetting when fine-tuning on only 500 images. The detection head has enough capacity to learn parking-specific localisation and occupancy classification on top of general visual features. This also makes training feasible on CPU (batch size 2, no GPU required), which matters for reproducibility.
+
+**INT8 quantization** — post-training quantization with a representative calibration dataset. Reduces model size 4.8× with negligible accuracy loss, and maps directly onto the E7's NPU inference workflow.
+
+---
+
+## Known Limitations
+
+- **Cross-domain generalization requires target data.** Model trained on PkLot and tested on TelitLot failed to generalize. Some target-domain data is required ,500 images was sufficient with frozen backbone, but not with fine-tuning.
+- **Fine-tuning on small datasets is unreliable.** E5 and E2 collapse under strict mAP evaluation. All-layer updates disrupt pretrained features when the dataset is too small or too different from the source. Use frozen backbone for any dataset under ~1k images.
+- **mAP 0.00 doesn't always mean no detections.** E2 and E5 report 0.00 under strict COCO IoU ≥ 0.5, but inference images show some visually plausible detections. The IoU threshold rejects imprecise boxes — confusion matrix analysis and visual inspection are necessary complements to mAP.
+- **TelitLot acquisition conditions were not fully controlled.** Some images have low-light and window reflections not present in PKLot. This adds domain variation beyond viewpoint and scene layout.
+- **E6 converges early.** Best checkpoint is at 10k steps; training beyond that doesn't improve and may slightly hurt. Full 50k runs were kept for consistency with other experiments.
+- **No export notebook (07).** Export workflow currently lives in `models/tflite/loadmodel.ipynb` and `08_inference_demo.ipynb`.
 
 ---
 
 ## Citation
 
-If you use this work, please cite the thesis:
-```
-[Your Name], "[Thesis Title]", [University], [Year].
+```bibtex
+@mastersthesis{krishnasamy2026space,
+  author = {Krishnasamy Karthikeyan, Poornima Devi},
+  title  = {Lightweight AI-based Vision System for Smart Parking Application},
+  school = {University of Trieste},
+  year   = {2026},
+  note   = {MSc in Data Science \& Scientific Computing}
+}
 ```
