@@ -5,9 +5,8 @@ Smart Parking Application for Circulation Efficiency (SPACE) is a parking lot au
 Datasets: [PKLot](https://public.roboflow.com/object-detection/pklot) (public, 12k images) and custom dataset, 500 images collected at Telit Cinterion, Trieste.
 
 <p align="center">
-  <img src="assets/parkingreadme.png" alt="Parking lot occupancy detection" width="900">
+  <img src="assests/parkingreadme.png" alt="Parking lot occupancy detection" width="900">
 </p>
-
 ---
 
 ## Setup
